@@ -18,28 +18,9 @@ class Joystick {
     const BUTTONUP   = 65536;
     const BUTTONDOWN = 65537;
 
-    const AXIS_H = 0;//33554432;
-    const AXIS_V = 16777216;
-
-//    const AXISCENTER = 0;
     const AXISNEG = 32769;
     const AXISPOS = 32767;
-    const AXISLEFT = 32769;
-    const AXISRIGHT = 32767;
-    const AXISUP = 32769;
-    const AXISDOWN = 32767;
     const AXISCENTER = 0;
-
-
-
-
-    const AXISMOTIONUP = 1;     // AXISMOTION + AXIS_V + AXIS_UP
-    const AXISMOTIONDOWN = 1;   // AXISMOTION + AXIS_V + AXIS_DOWN
-    const AXISMOTIONMIDDLE = 1; // AXISMOTION + AXIS_V + AXIS_CENTER
-    const AXISMOTIONLEFT = 1;   // AXISMOTION + AXIS_H + AXIS_LEFT
-    const AXISMOTIONRIGHT = 1;  // AXISMOTION + AXIS_H + AXIS_RIGHT
-    const AXISMOTIONCENTER = 1; // AXISMOTION + AXIS_H + AXIS_CENTER
-
 
     public static $prefix = '/dev/input/js';
 
@@ -47,6 +28,9 @@ class Joystick {
 
     private $_buttonsCount = 0;
 
+    private $_buttons = array();
+    private $_axes = array();
+    
     public static function getIds() {
         $a = glob(self::$prefix.'*');
         if(!count($a)) {
@@ -123,7 +107,6 @@ var_dump(ord($read[6]));
              */
             if(self::BUTTON & $value[1]) {
 //                case "\x81": // button
-                    echo "botón\n";
                     $this->_buttonsCount++;
 //                    break;
             }
@@ -144,8 +127,20 @@ var_dump(ord($read[6]));
         return false;
     }
 
-    public function getNumButtons() {
-        return $this->_buttonsCount;
+    /**
+     * 
+     * @return array
+     */
+    public function getButtons() {
+        return $this->_buttons;
+    }
+    
+    /**
+     * 
+     * @return array
+     */
+    public function getAxes() {
+        return $this->_axes;
     }
     
     private function _dump($word) {
@@ -171,6 +166,8 @@ class JoystickEvent {
         //var_dump(ord($read[7]), dechex(ord($read[7])), decoct(ord($read[7])));
             
         $value = array_values(unpack('L*', $read));
+        $this->timestamp = $value[0];
+        $this->data = $value[1];
 
         if(Joystick::BUTTON & $value[1]) {
 //                $ev->type = self::BUTTON;
@@ -180,8 +177,13 @@ class JoystickEvent {
         }
         elseif(Joystick::AXISMOTION & $value[1]) {
             $this->type = Joystick::AXISMOTION;
-            $this->type |= ($value[1] & Joystick::AXIS_V);
+//            $this->type |= ($value[1] & Joystick::AXIS_V);
+            $this->axis = ($value[1] >> 24);
             $this->value = ($value[1] & 65535);
+//          −32,768 to 32,767
+            if($this->value >= 32768) {
+                $this->value -= 65536;
+            }
         }
         else {
             switch($read[6]) {
@@ -215,7 +217,5 @@ class JoystickEvent {
             }
         }
 
-        $this->timestamp = $value[0];
-        $this->data = $value[1];
     }
 }

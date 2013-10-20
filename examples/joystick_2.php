@@ -1,6 +1,6 @@
 <?php
 
-require('../Joystick.php');
+require(dirname(__FILE__).'/../Joystick.php');
 
 $disponibles = Joystick::getIds();
 echo "Disponibles: ".implode(',', $disponibles)."\n";
@@ -8,12 +8,37 @@ echo "Disponibles: ".implode(',', $disponibles)."\n";
 $joystick = new Joystick(current($disponibles));
 
 echo "
-Botones: ".$joystick->getNumButtons()."
+Botones: ".print_r($joystick->getButtons(), true)."
     
+Ejes: ".print_r($joystick->getAxes(), true)."
+
 ";
 
 while(true) {
     if($event = $joystick->getEvent()) {
+        
+        $bytes = array();
+        $bytes[] = (255 & ($event->data >> 24));
+        $bytes[] = (255 & ($event->data >> 16));
+//        $bytes[] = (255 & ($event->data >> 8));
+        $bytes[] = decbin(65535 & $event->data);
+        $bytes[] = sprintf('%d', 65535 & $event->data);
+        
+        echo "data  ".chunk_split(sprintf("%032b", $event->data), 8, ' ')."\n";
+        switch($event->type) {
+            case Joystick::BUTTONDOWN:
+            case Joystick::BUTTONUP:
+                printf("      %'.8s <-button\n", $event->button);
+                break;
+            case Joystick::AXISMOTION:
+                printf("      %8d <-  axis %16d\n", $event->axis, $event->value);
+                break;
+        }
+        print_r($bytes);
+        echo "\n";
+        continue;
+        
+        
 //        echo "Type: {$event->type}\n";
         echo "{$event->timestamp} ";
         switch($event->type) {
